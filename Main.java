@@ -9,6 +9,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.stream.Stream;
@@ -41,7 +43,6 @@ public class Main extends Application {
 
         HBox hBox = new HBox(10, directoryPathField, browseButton);
         VBox vBox = new VBox(10, hBox, searchField, searchButton, resultArea);
-        vBox.setStyle("-fx-padding: 10; -fx-alignment: center;");
 
         Scene scene = new Scene(vBox, 600, 200);
         primaryStage.setScene(scene);
@@ -59,33 +60,50 @@ public class Main extends Application {
 
     private void searchFiles() {
         String directoryPath = directoryPathField.getText();
+        String searchPhrase = searchField.getText();
         if(directoryPath.isEmpty()) {
             resultArea.setText("Please provide a directory path.");
             return;
         }
 
-        File directory =new File(directoryPath);
+        File directory = new File(directoryPath);
         if(!directory.isDirectory()) {
             resultArea.setText("The provided path is not a directory.");
             return;
         }
 
         StringBuilder results = new StringBuilder();
-        listFilesInDirectory(directory, results);
+        searchInDirectory(directory, results, searchPhrase);
         resultArea.setText(results.toString());
     }
 
-    private void listFilesInDirectory(File directory, StringBuilder results) {
+    private void searchInDirectory(File directory, StringBuilder results, String searchPhrase) {
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.isDirectory()) {
-                    listFilesInDirectory(directory, results);
+                if (file.isFile()) {
+                    if (containsPhrase(file, searchPhrase)){
+                        searchInDirectory(directory, results, searchPhrase);
+                    }
                 } else {
                     results.append(file.getAbsolutePath()).append("\n");
                 }
             }
         }
+    }
+
+    private boolean containsPhrase(File file, String searchPhrase) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.contains(searchPhrase)) {
+                    return true;
+                }
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
 }
